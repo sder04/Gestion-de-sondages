@@ -1,9 +1,10 @@
 import sqlite3
 
+# Connexion à la base de données SQLite
 conn = sqlite3.connect('polls.db')
 cursor = conn.cursor()
 
-# Définir les requêtes de création de table
+# Définir les requêtes de création de table (inchangées)
 create_users_table = """
 CREATE TABLE IF NOT EXISTS Users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,20 +95,29 @@ cursor.execute(create_poll_history_table)
 # Valider les changements
 conn.commit()
 
+# Insérer plusieurs utilisateurs dans la table Users
+users_to_insert = [
+    ('admin1', 'admin1@example.com', 'hashed_password_1', 'Admin'),
+    ('admin2', 'admin2@example.com', 'hashed_password_2', 'Admin'),
+    ('user1', 'user1@example.com', 'hashed_password_3', 'User'),
+    ('user2', 'user2@example.com', 'hashed_password_4', 'User'),
+    ('user3', 'user3@example.com', 'hashed_password_5', 'User')
+]
 
-# Insérer des données dans la table Users
-cursor.execute("""
-INSERT INTO Users (username, email, password_hash, role)
-VALUES (?, ?, ?, ?)
-""", ('johndoe', 'john@example.com', 'hashed_password', 'User'))
+cursor.executemany("""
+    INSERT INTO Users (username, email, password_hash, role)
+    VALUES (?, ?, ?, ?)
+""", users_to_insert)
 
 # Valider les changements
 conn.commit()
 
+# Sélectionner et afficher tous les utilisateurs insérés
 cursor.execute("SELECT * FROM Users")
 users = cursor.fetchall()
 
 for user in users:
     print(user)
 
+# Fermer la connexion
 conn.close()
