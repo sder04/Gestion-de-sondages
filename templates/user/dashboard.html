@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>Mon Tableau de Bord</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="dashboard-section">
+        <h2>Sondages Disponibles</h2>
+        {% if available_surveys %}
+        <div class="survey-grid">
+            {% for survey in available_surveys %}
+            <div class="survey-card">
+                <div class="survey-status">
+                    <span class="badge bg-success">Actif</span>
+                </div>
+                <h3>{{ survey.title }}</h3>
+                <p class="survey-meta">Par: {{ survey.author.username }}</p>
+                <p class="survey-description">{{ survey.description }}</p>
+                <div class="survey-meta">
+                    <span><i class="fas fa-clock"></i> Expire le: {{ survey.end_date.strftime('%d/%m/%Y %H:%M') }}</span>
+                    <span><i class="fas fa-users"></i> {{ survey.get_response_count() }} réponses</span>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('take_survey', survey_id=survey.id) }}" class="btn btn-primary">
+                        <i class="fas fa-pen"></i> Participer
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Aucun sondage disponible pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Mes Participations</h2>
+        {% if my_responses %}
+        <div class="survey-grid">
+            {% for response in my_responses %}
+            <div class="survey-card">
+                <h3>{{ response.survey.title }}</h3>
+                <p class="survey-meta">Répondu le: {{ response.submitted_at.strftime('%d/%m/%Y %H:%M') }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Vous n'avez pas encore participé à des sondages.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.dashboard-section {
+    margin-bottom: 3rem;
+}
+
+.dashboard-section h2 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.survey-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.survey-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.survey-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+.survey-card h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.survey-description {
+    margin: 1rem 0;
+    color: #666;
+}
+
+.survey-meta {
+    display: flex;
+    gap: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+}
+
+.card-footer {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    color: #666;
+}
+
+.badge {
+    padding: 0.5em 1em;
+    border-radius: 20px;
+}
+
+.alert {
+    margin-bottom: 2rem;
+}
+
+/* Animations pour les cartes */
+.survey-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.survey-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Style pour les boutons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn i {
+    font-size: 0.9em;
+}
+</style>
+{% endblock %} 

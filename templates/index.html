@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section">
+    <h1>Bienvenue sur la Plateforme de Sondages</h1>
+    <p>Créez et partagez des sondages facilement</p>
+    
+    {% if current_user.is_authenticated %}
+        <div class="action-buttons">
+            <a href="{{ url_for('create_survey') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Créer un sondage
+            </a>
+        </div>
+    {% else %}
+        <div class="action-buttons">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Connexion
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                <i class="fas fa-user-plus"></i> Inscription
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% if current_user.is_authenticated %}
+<div class="survey-section">
+    <h2>Sondages récents</h2>
+    <div class="survey-grid">
+        {% for survey in surveys %}
+        <div class="card survey-card">
+            <h3>{{ survey.title }}</h3>
+            <p>{{ survey.description }}</p>
+            <div class="card-footer">
+                <a href="{{ url_for('view_survey', survey_id=survey.id) }}" class="btn btn-primary">
+                    Participer
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
