@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="survey-creator container">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-plus-circle"></i> Créer un nouveau sondage</h2>
+        </div>
+        
+        <div class="card-body">
+            <form method="POST" id="surveyForm" onsubmit="return validateForm()">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group">
+                    {{ form.title.label(class="form-label") }}
+                    {{ form.title(class="form-control") }}
+                    {% for error in form.title.errors %}
+                        <span class="error-message">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control") }}
+                    {% for error in form.description.errors %}
+                        <span class="error-message">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div id="questionContainer" class="questions-container">
+                    <!-- Les questions seront ajoutées ici dynamiquement -->
+                </div>
+
+                <div class="form-group">
+                    <button type="button" id="addQuestionBtn" class="btn btn-secondary">
+                        <i class="fas fa-plus"></i> Ajouter une question
+                    </button>
+                </div>
+
+                {{ form.questions(id="questionsJson") }}
+
+                <div class="form-group">
+                    {{ form.end_date.label(class="form-label") }}
+                    {{ form.end_date(class="form-control datepicker") }}
+                    {% for error in form.end_date.errors %}
+                        <span class="error-message">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="form-actions">
+                    {{ form.submit(class="btn btn-primary") }}
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation du date picker
+    flatpickr(".datepicker", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        minDate: "today"
+    });
+
+    const questionContainer = document.getElementById('questionContainer');
+    const addQuestionBtn = document.getElementById('addQuestionBtn');
+    const questionsJsonInput = document.getElementById('questionsJson');
+    const form = document.getElementById('surveyForm');
+
+    let questionCount = 0;
+
+    function addQuestion() {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question-card';
+        questionDiv.dataset.questionId = questionCount++;
+
+        questionDiv.innerHTML = `
+            <div class="question-header">
+                <button type="button" class="btn btn-danger btn-sm remove-question">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Question</label>
+                <input type="text" class="form-control question-text" required placeholder="Votre question">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Type de réponse</label>
+                <select class="form-control question-type" onchange="handleQuestionTypeChange(this)">
+                    <option value="text">Texte</option>
+                    <option value="choice">Choix multiple</option>
+                    <option value="rating">Note</option>
+                </select>
+            </div>
+            <div class="choices-container" style="display: none;">
+                <div class="choice-inputs"></div>
+                <button type="button" class="btn btn-secondary btn-sm add-choice">
+                    <i class="fas fa-plus"></i> Ajouter un choix
+                </button>
+            </div>
+        `;
+
+        questionContainer.appendChild(questionDiv);
+
+        // Gestionnaires d'événements
+        const removeBtn = questionDiv.querySelector('.remove-question');
+        const addChoiceBtn = questionDiv.querySelector('.add-choice');
+        const typeSelect = questionDiv.querySelector('.question-type');
+
+        removeBtn.addEventListener('click', () => {
+            questionDiv.remove();
+            updateQuestionsJson();
+        });
+
+        addChoiceBtn.addEventListener('click', () => {
+            addChoice(questionDiv.querySelector('.choice-inputs'));
+        });
+
+        typeSelect.addEventListener('change', function() {
+            const choicesContainer = questionDiv.querySelector('.choices-container');
+            choicesContainer.style.display = this.value === 'choice' ? 'block' : 'none';
+            
+            if (this.value === 'choice') {
+                const choiceInputs = questionDiv.querySelector('.choice-inputs');
+                if (choiceInputs.children.length === 0) {
+                    // Ajouter deux choix par défaut
+                    addChoice(choiceInputs);
+                    addChoice(choiceInputs);
+                }
+            }
+        });
+
+        updateQuestionsJson();
+    }
+
+    function addChoice(container) {
+        const choiceDiv = document.createElement('div');
+        choiceDiv.className = 'choice-input';
+        choiceDiv.innerHTML = `
+            <div class="input-group mb-2">
+                <input type="text" class="form-control" required placeholder="Option de réponse">
+                <button type="button" class="btn btn-danger remove-choice">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(choiceDiv);
+
+        choiceDiv.querySelector('.remove-choice').addEventListener('click', () => {
+            choiceDiv.remove();
+            updateQuestionsJson();
+        });
+    }
+
+    function updateQuestionsJson() {
+        const questions = [];
+        questionContainer.querySelectorAll('.question-card').forEach(questionDiv => {
+            const question = {
+                id: questionDiv.dataset.questionId,
+                text: questionDiv.querySelector('.question-text').value,
+                type: questionDiv.querySelector('.question-type').value,
+                choices: []
+            };
+
+            if (question.type === 'choice') {
+                questionDiv.querySelectorAll('.choice-input input').forEach(input => {
+                    if (input.value.trim()) {
+                        question.choices.push(input.value.trim());
+                    }
+                });
+            }
+
+            questions.push(question);
+        });
+
+        questionsJsonInput.value = JSON.stringify(questions);
+    }
+
+    // Ajouter les écouteurs d'événements
+    addQuestionBtn.addEventListener('click', addQuestion);
+    questionContainer.addEventListener('input', updateQuestionsJson);
+    questionContainer.addEventListener('change', updateQuestionsJson);
+
+    // Fonction de validation du formulaire
+    window.validateForm = function() {
+        const questions = JSON.parse(questionsJsonInput.value || '[]');
+        if (questions.length === 0) {
+            alert('Veuillez ajouter au moins une question.');
+            return false;
+        }
+
+        // Vérifier chaque question
+        for (const question of questions) {
+            if (!question.text.trim()) {
+                alert('Veuillez remplir le texte de toutes les questions.');
+                return false;
+            }
+            if (question.type === 'choice' && question.choices.length < 2) {
+                alert('Les questions à choix multiples doivent avoir au moins 2 options.');
+                return false;
+            }
+        }
+
+        return true;
+    };
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+.survey-creator {
+    max-width: 800px;
+    margin: 2rem auto;
+}
+
+.question-card {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 5px;
+    position: relative;
+    border: 1px solid #dee2e6;
+}
+
+.question-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
+.choices-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 5px;
+}
+
+.choice-input {
+    margin-bottom: 0.5rem;
+}
+
+.input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.error-message {
+    color: var(--danger-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %} 
